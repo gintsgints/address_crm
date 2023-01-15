@@ -27,9 +27,10 @@ async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response) {
   let posts_per_page = req
     .query("posts_per_page")
     .unwrap_or(DEFAULT_POSTS_PER_PAGE);
+  let search = req.query::<String>("search").unwrap();
 
 
-  let (posts, _num_pages) = Query::find_address_in_page(conn, page, posts_per_page)
+  let (posts, _num_pages) = Query::find_address_in_page(conn, search, page, posts_per_page)
     .await
     .map_err(|_| StatusError::internal_server_error()).unwrap();
 
