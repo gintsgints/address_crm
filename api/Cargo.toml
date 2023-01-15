@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 crm-address-core = { path = "../core" }
 tokio = { version = "1.15.0", features = ["macros", "rt-multi-thread"] }
-salvo = { version = "0.27", features = ["affix", "serve-static"] }
+salvo = { version = "0.27", features = ["affix"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
 tera = "1.8.0"
 dotenvy = "0.15"
 entity = { path = "../entity" }
