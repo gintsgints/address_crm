@@ -1,0 +1,15 @@
+[package]
+name = "crm-address"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.21.1", features = ["macros", "rt-multi-thread"] }
+sea-orm = { version = "0.9.2", features = [
+  "debug-print",
+  "runtime-tokio-native-tls",
+  "sqlx-sqlite"
+] }
+sea-orm-migration = "0.9.2"
