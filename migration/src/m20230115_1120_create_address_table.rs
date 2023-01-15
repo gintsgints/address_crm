@@ -22,16 +22,18 @@ impl MigrationTrait for Migration {
   }
 
   async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-    manager.drop_table(Table::drop().table(Address::Table).to_owned()).await
+      manager
+          .drop_table(Table::drop().table(Address::Table).to_owned())
+          .await
   }
 }
 
 #[derive(Iden)]
 enum Address {
-  Table,
-  Id,
-  Fullname,
-  SearchTextName,
-  FullCode,
-  PostalIndex
+    Table,
+    Id,
+    Fullname,
+    SearchTextName,
+    FullCode,
+    PostalIndex,
 }

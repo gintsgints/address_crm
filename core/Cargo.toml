@@ -1,0 +1,18 @@
+[package]
+name = "crm-address-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+entity = { path = "../entity" }
+
+[dependencies.sea-orm]
+version = "0.10.3" # sea-orm version
+features = [
+    "debug-print",
+    "runtime-tokio-native-tls",
+    "sqlx-sqlite",
+]
+
+[dev-dependencies]
+tokio = { version = "1.20.0", features = ["macros", "rt"] }
