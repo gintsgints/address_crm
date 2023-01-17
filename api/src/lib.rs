@@ -3,6 +3,8 @@ use std::env;
 use salvo::prelude::*;
 use migration::{Migrator, MigratorTrait};
 use salvo::extra::affix;
+use thiserror::Error;
+use serde::{Serialize, ser::{SerializeMap}};
 use crm_address_core::{
   sea_orm::{Database, DatabaseConnection},
   Query
@@ -15,11 +17,50 @@ struct AppState {
     conn: DatabaseConnection,
 }
 
+#[derive(Error, Debug)]
+pub enum AppError {
+  #[error("Error: `{0}`")]
+  Status(#[from] salvo::http::StatusError),
+}
+
+impl Serialize for AppError {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+      S: serde::Serializer {
+        match self {
+          AppError::Status(error) => {
+            // serializer.serialize_str(&error.name.as_str())
+            let mut map = serializer.serialize_map(Some(4))?;
+            map.serialize_entry("code", error.code.as_str())?;
+            map.serialize_entry("name", error.name.as_str())?;
+            match &error.summary {
+              Some(s) => map.serialize_entry("summary", s.as_str())?,
+              None => map.serialize_entry("summary", "")?
+            }
+            match &error.detail {
+              Some(s) => map.serialize_entry("detail", s.as_str())?,
+              None => map.serialize_entry("detail", "")?
+            }
+            map.end()
+          }
+        }
+      }
+}
+
+pub type AppResult<T> = Result<T, AppError>;
+
+#[async_trait]
+impl Writer for AppError {
+  async fn write(mut self, _req: &mut Request, _depot: &mut Depot, res: &mut Response) {
+    res.render(serde_json::to_string(&self).unwrap());
+  }
+}
+
 #[handler]
-async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response) {
+async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response)-> AppResult<()> {
   let state = depot
   .obtain::<AppState>()
-  .ok_or_else(StatusError::internal_server_error).unwrap();
+  .ok_or_else(StatusError::internal_server_error)?;
 
   let conn = &state.conn;
 
@@ -27,14 +68,16 @@ async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response) {
   let posts_per_page = req
     .query("posts_per_page")
     .unwrap_or(DEFAULT_POSTS_PER_PAGE);
-  let search = req.query::<String>("search").unwrap();
-
+  let search = req.query::<String>("search").ok_or(StatusError::bad_request()
+    .with_summary("Search query parameter not provided"))?;
 
   let (posts, _num_pages) = Query::find_address_in_page(conn, search, page, posts_per_page)
     .await
-    .map_err(|_| StatusError::internal_server_error()).unwrap();
+    .map_err(|_| StatusError::internal_server_error().with_summary("Error executing search"))?;
 
-  res.render(serde_json::to_string(&posts).unwrap())
+  res.render(serde_json::to_string(&posts)
+    .map_err(|_| StatusError::internal_server_error().with_summary("Error parsing query results"))?);
+  Ok(())
 }
 
 #[tokio::main]
