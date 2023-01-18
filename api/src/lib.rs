@@ -9,6 +9,7 @@ use crm_address_core::{
   sea_orm::{Database, DatabaseConnection},
   Query
 };
+use ::entity::{address::Model as Model};
 
 const DEFAULT_POSTS_PER_PAGE: u64 = 5;
 
@@ -56,6 +57,21 @@ impl Writer for AppError {
   }
 }
 
+#[derive(Serialize)]
+struct Pagination {
+  limit: u64,
+  page: u64,
+  pages: u64,
+  total: u64,
+}
+
+#[derive(Serialize)]
+struct AddressResults {
+  data: Vec<Model>,
+  pagination: Pagination,
+  error: Option<AppError>,
+}
+
 #[handler]
 async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response)-> AppResult<()> {
   let state = depot
@@ -65,17 +81,28 @@ async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response)-> AppRes
   let conn = &state.conn;
 
   let page = req.query("page").unwrap_or(1);
-  let posts_per_page = req
-    .query("posts_per_page")
+  let limit = req
+    .query("limit")
     .unwrap_or(DEFAULT_POSTS_PER_PAGE);
   let search = req.query::<String>("search").ok_or(StatusError::bad_request()
     .with_summary("Search query parameter not provided"))?;
 
-  let (posts, _num_pages) = Query::find_address_in_page(conn, search, page, posts_per_page)
+  let (posts, num_pages_and_items) = Query::find_address_in_page(conn, search, page, limit)
     .await
     .map_err(|_| StatusError::internal_server_error().with_summary("Error executing search"))?;
 
-  res.render(serde_json::to_string(&posts)
+  let result = AddressResults {
+    data: posts,
+    pagination: Pagination {
+      limit,
+      page,
+      pages: num_pages_and_items.number_of_pages,
+      total: num_pages_and_items.number_of_items,
+    },
+    error: None,
+  };
+
+  res.render(serde_json::to_string(&result)
     .map_err(|_| StatusError::internal_server_error().with_summary("Error parsing query results"))?);
   Ok(())
 }

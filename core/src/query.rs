@@ -9,13 +9,13 @@ impl Query {
     search: String,
     page: u64,
     posts_per_page: u64,
-  ) -> Result<(Vec<address::Model>, u64), DbErr> {
+  ) -> Result<(Vec<address::Model>, ItemsAndPagesNumber), DbErr> {
     let paginator = Address::find()
       .filter(address::Column::SearchTextName.contains(search.as_str()))
       .order_by_asc(address::Column::FullCode)
       .paginate(db, posts_per_page);
-    let num_pages = paginator.num_pages().await?;
+    let items_and_pages_number = paginator.num_items_and_pages().await?;
 
-    paginator.fetch_page(page - 1).await.map(|p| (p, num_pages))
+    paginator.fetch_page(page - 1).await.map(|p| (p, items_and_pages_number))
   }
 }
