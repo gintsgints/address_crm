@@ -53,7 +53,12 @@ pub type AppResult<T> = Result<T, AppError>;
 #[async_trait]
 impl Writer for AppError {
   async fn write(mut self, _req: &mut Request, _depot: &mut Depot, res: &mut Response) {
-    res.render(serde_json::to_string(&self).unwrap());
+    let result = AddressResults {
+      data: None,
+      pagination: None,
+      error: Some(self),
+    };
+    res.render(serde_json::to_string(&result).unwrap());
   }
 }
 
@@ -67,8 +72,8 @@ struct Pagination {
 
 #[derive(Serialize)]
 struct AddressResults {
-  data: Vec<Model>,
-  pagination: Pagination,
+  data: Option<Vec<Model>>,
+  pagination: Option<Pagination>,
   error: Option<AppError>,
 }
 
@@ -92,13 +97,13 @@ async fn list(req: &mut Request, depot: &mut Depot, res: &mut Response)-> AppRes
     .map_err(|_| StatusError::internal_server_error().with_summary("Error executing search"))?;
 
   let result = AddressResults {
-    data: posts,
-    pagination: Pagination {
+    data: Some(posts),
+    pagination: Some(Pagination {
       limit,
       page,
       pages: num_pages_and_items.number_of_pages,
       total: num_pages_and_items.number_of_items,
-    },
+    }),
     error: None,
   };
 
