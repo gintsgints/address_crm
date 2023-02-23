@@ -16,6 +16,7 @@ features = [
 
 [dev-dependencies]
 tokio = { version = "1.20.0", features = ["macros", "rt"] }
+maplit = { version = "1" }
 
 [features]
 mock = ["sea-orm/mock"]
