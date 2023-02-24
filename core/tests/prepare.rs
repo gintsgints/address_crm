@@ -2,8 +2,12 @@ use ::entity::address;
 use sea_orm::*;
 
 #[cfg(feature = "mock")]
+#[allow(overflowing_literals)]
 pub fn prepare_mock_db() -> DatabaseConnection {
   MockDatabase::new(DatabaseBackend::Postgres)
+    .append_query_results(vec![vec![maplit::btreemap! {
+      "num_items" => Into::<sea_orm::Value>::into(14_i64),
+    }]])
     .append_query_results(vec![
       vec![address::Model {
         id: 106137538,
